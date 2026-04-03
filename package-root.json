@@ -1,0 +1,11 @@
+{
+  "name": "sticky-ideas-visualizer",
+  "private": true,
+  "workspaces": ["api", "web", "shared"],
+  "scripts": {
+    "dev:api": "cd api && npm run prestart && npm run start",
+    "dev:web": "cd web && npm run dev",
+    "build": "cd api && npm run build && cd ../web && npm run build",
+    "install:all": "cd api && npm install && cd ../web && npm install"
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "sticky-ideas-api",
+  "version": "1.0.0",
+  "description": "Azure Functions API for Sticky Ideas real-time ingestion and clustering",
+  "main": "dist/src/functions/*.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "start": "func start",
+    "prestart": "npm run build"
+  },
+  "dependencies": {
+    "@azure/ai-form-recognizer": "^5.0.0",
+    "@azure/cosmos": "^4.2.0",
+    "@azure/functions": "^4.6.0",
+    "@azure/identity": "^4.5.0",
+    "@azure/storage-queue": "^12.24.0",
+    "@microsoft/microsoft-graph-client": "^3.0.7",
+    "express": "^5.2.1",
+    "isomorphic-fetch": "^3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "azure-functions-core-tools": "^4.0.0",
+    "typescript": "^5.6.0"
+  }
+}
