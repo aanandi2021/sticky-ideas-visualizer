@@ -1,0 +1,14 @@
+{
+  "name": "sticky-ideas-tool",
+  "version": "1.0.0",
+  "description": "Extract sticky-note ideas from a PDF, cluster by theme, and generate an interactive D3 tree visualization.",
+  "main": "generate.js",
+  "scripts": {
+    "start": "node generate.js"
+  },
+  "dependencies": {
+    "pdfjs-dist": "3.11.174",
+    "sharp": "^0.33.0",
+    "tesseract.js": "^5.0.0"
+  }
+}

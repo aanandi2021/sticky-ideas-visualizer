@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>__TITLE__</title>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <style>
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-card: #1a1a2e;
+            --bg-card-hover: #22223a;
+            --text-primary: #e8e8f0;
+            --text-secondary: #a0a0c0;
+            --accent-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --shadow-glow: 0 0 30px rgba(102, 126, 234, 0.15);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        .hero {
+            text-align: center;
+            padding: 48px 20px 24px;
+            background: linear-gradient(180deg, #161630 0%, var(--bg-primary) 100%);
+        }
+        .hero h1 {
+            font-size: 2.8rem; font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; margin-bottom: 12px; letter-spacing: -0.5px;
+        }
+        .hero p {
+            color: var(--text-secondary); font-size: 1.1rem;
+            max-width: 620px; margin: 0 auto; line-height: 1.6;
+        }
+        .hero .count {
+            display: inline-block; margin-top: 16px; padding: 6px 18px;
+            border-radius: 20px; font-size: 0.85rem; font-weight: 600;
+            background: rgba(102, 126, 234, 0.15); color: #8da2f0;
+            border: 1px solid rgba(102, 126, 234, 0.25);
+        }
+        .tree-section { max-width: 1500px; margin: 24px auto; padding: 0 20px; }
+        .tree-section h2 {
+            text-align: center; font-size: 1.4rem; margin-bottom: 16px;
+            color: var(--text-secondary); font-weight: 400;
+        }
+        .tree-controls {
+            display: flex; justify-content: center; gap: 12px;
+            margin-bottom: 16px; flex-wrap: wrap;
+        }
+        .tree-controls button {
+            padding: 8px 20px; border-radius: 10px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            background: rgba(102, 126, 234, 0.1); color: #8da2f0;
+            font-size: 0.88rem; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; font-family: inherit;
+        }
+        .tree-controls button:hover {
+            background: rgba(102, 126, 234, 0.25);
+            border-color: rgba(102, 126, 234, 0.5);
+        }
+        .tree-controls button.active {
+            background: rgba(102, 126, 234, 0.35);
+            border-color: #667eea; color: #c5d0f8;
+        }
+        .tree-container {
+            background: #11112a; border-radius: 20px; padding: 20px 10px;
+            border: 1px solid rgba(102, 126, 234, 0.12);
+            box-shadow: var(--shadow-glow); overflow: hidden; position: relative;
+        }
+        #tree-svg { display: block; margin: 0 auto; }
+        .link {
+            fill: none; stroke: #334155; stroke-width: 1.8px; stroke-opacity: 0;
+            transition: stroke-opacity 0.5s;
+        }
+        .link.visible { stroke-opacity: 0.6; }
+        .node { cursor: pointer; }
+        .node circle { stroke-width: 2.5px; transition: r 0.3s, filter 0.3s; }
+        .node:hover circle { filter: brightness(1.3) drop-shadow(0 0 6px currentColor); }
+        .node text { font-family: 'Segoe UI', system-ui, sans-serif; fill: var(--text-primary); pointer-events: none; }
+        .node .label-theme { font-size: 13px; font-weight: 700; }
+        .node .label-idea { font-size: 11.5px; font-weight: 400; fill: var(--text-secondary); }
+        .node .label-root { font-size: 15px; font-weight: 800; fill: #c5d0f8; }
+        .node .badge { font-size: 9.5px; font-weight: 700; fill: rgba(255,255,255,0.7); }
+        .tooltip {
+            position: absolute; padding: 10px 14px; background: #1e1e3a;
+            border: 1px solid rgba(102,126,234,0.3); border-radius: 10px;
+            color: var(--text-primary); font-size: 0.82rem; line-height: 1.5;
+            max-width: 280px; pointer-events: none; opacity: 0;
+            transition: opacity 0.2s; z-index: 10;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+        .tooltip.show { opacity: 1; }
+        .tooltip .tt-title { font-weight: 700; margin-bottom: 4px; }
+        .tooltip .tt-desc { color: var(--text-secondary); }
+        .cards-section { max-width: 1400px; margin: 50px auto 80px; padding: 0 20px; }
+        .cards-section h2 {
+            text-align: center; font-size: 1.4rem; margin-bottom: 24px;
+            color: var(--text-secondary); font-weight: 400;
+        }
+        .theme-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 22px;
+        }
+        .theme-card {
+            background: var(--bg-card); border-radius: 16px; padding: 24px;
+            border: 1px solid rgba(255,255,255,0.04);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .theme-card:hover {
+            transform: translateY(-3px); box-shadow: var(--shadow-glow);
+            background: var(--bg-card-hover);
+        }
+        .theme-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+        .theme-icon {
+            width: 42px; height: 42px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.3rem; flex-shrink: 0;
+        }
+        .theme-title { font-size: 1.1rem; font-weight: 700; line-height: 1.3; }
+        .theme-badge {
+            font-size: 0.7rem; font-weight: 600; padding: 2px 8px;
+            border-radius: 10px; margin-left: auto; flex-shrink: 0;
+        }
+        .idea-list { list-style: none; }
+        .idea-list li {
+            padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 0.9rem; line-height: 1.5; color: var(--text-secondary);
+        }
+        .idea-list li:last-child { border-bottom: none; }
+        .idea-list li strong { color: var(--text-primary); font-weight: 600; }
+        .idea-list li span.desc { display: block; font-size: 0.8rem; margin-top: 3px; opacity: 0.7; }
+        footer {
+            text-align: center; padding: 30px;
+            color: rgba(160,160,192,0.4); font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+
+<section class="hero">
+    <h1>__TITLE__</h1>
+    <p>Brainstormed ideas extracted from sticky notes, grouped into strategic themes.</p>
+    <span class="count">__IDEA_COUNT__ ideas · __THEME_COUNT__ themes</span>
+</section>
+
+<section class="tree-section">
+    <h2>Interactive Idea Tree</h2>
+    <div class="tree-controls">
+        <button id="btn-play">▶ Play Animation</button>
+        <button id="btn-expand">Expand All</button>
+        <button id="btn-collapse">Collapse All</button>
+        <button id="btn-reset">Reset</button>
+    </div>
+    <div class="tree-container">
+        <div class="tooltip" id="tooltip"></div>
+        <svg id="tree-svg"></svg>
+    </div>
+</section>
+
+<section class="cards-section">
+    <h2>Detailed Breakdown by Theme</h2>
+    <div class="theme-grid">
+        <!--__CARDS__-->
+    </div>
+</section>
+
+<footer>Generated by Sticky Ideas Visualizer</footer>
+
+<script>
+const treeData = /*__TREE_DATA__*/;
+
+// ── D3 COLLAPSIBLE TREE ──
+const margin = { top: 30, right: 220, bottom: 30, left: 120 };
+const containerEl = document.querySelector('.tree-container');
+const fullWidth = Math.min(containerEl.clientWidth - 20, 1460);
+const nodeHeight = 28;
+
+const svg = d3.select("#tree-svg")
+    .attr("width", fullWidth)
+    .attr("preserveAspectRatio", "xMidYMid meet");
+
+const g = svg.append("g")
+    .attr("transform", `translate(${margin.left},${margin.top})`);
+
+const tooltip = document.getElementById('tooltip');
+const root = d3.hierarchy(treeData);
+root.x0 = 0;
+root.y0 = 0;
+root.children.forEach(collapse);
+
+function collapse(d) {
+    if (d.children) { d._children = d.children; d._children.forEach(collapse); d.children = null; }
+}
+function expand(d) {
+    if (d._children) { d.children = d._children; d._children = null; d.children.forEach(expand); }
+}
+
+let i = 0;
+const duration = 500;
+const treemap = d3.tree().nodeSize([nodeHeight, 260]);
+update(root);
+
+function update(source) {
+    const treeDataLayout = treemap(root);
+    const nodes = treeDataLayout.descendants();
+    const links = treeDataLayout.descendants().slice(1);
+    nodes.forEach(d => { d.y = d.depth * 280; });
+
+    let minX = Infinity, maxX = -Infinity;
+    nodes.forEach(d => { if (d.x < minX) minX = d.x; if (d.x > maxX) maxX = d.x; });
+    const treeH = maxX - minX + margin.top + margin.bottom + 60;
+    svg.transition().duration(duration)
+        .attr("height", Math.max(treeH, 120))
+        .attr("viewBox", `0 ${minX - 30} ${fullWidth} ${treeH}`);
+
+    const link = g.selectAll("path.link").data(links, d => d.id || (d.id = ++i));
+    const linkEnter = link.enter().insert("path", "g")
+        .attr("class", "link")
+        .attr("d", () => { const o = { x: source.x0, y: source.y0 }; return diagonal(o, o); });
+    const linkUpdate = linkEnter.merge(link);
+    linkUpdate.transition().duration(duration)
+        .attr("d", d => diagonal(d, d.parent))
+        .on("end", function() { d3.select(this).classed("visible", true); });
+    linkEnter.transition().delay(duration * 0.3).duration(300).style("stroke-opacity", 0.6);
+    linkUpdate.classed("visible", true);
+    link.exit().transition().duration(duration)
+        .attr("d", () => { const o = { x: source.x, y: source.y }; return diagonal(o, o); }).remove();
+
+    const node = g.selectAll("g.node").data(nodes, d => d.id || (d.id = ++i));
+    const nodeEnter = node.enter().append("g")
+        .attr("class", "node")
+        .attr("transform", () => `translate(${source.y0},${source.x0})`)
+        .style("opacity", 0)
+        .on("click", (event, d) => {
+            if (d.data.type === "idea") return;
+            if (d.children) { d._children = d.children; d.children = null; }
+            else if (d._children) { d.children = d._children; d._children = null; }
+            update(d);
+        })
+        .on("mouseenter", (event, d) => {
+            if (!d.data.desc) return;
+            tooltip.innerHTML = `<div class="tt-title">${d.data.name}</div><div class="tt-desc">${d.data.desc}</div>`;
+            tooltip.classList.add('show');
+        })
+        .on("mousemove", (event) => {
+            const rect = containerEl.getBoundingClientRect();
+            tooltip.style.left = (event.clientX - rect.left + 14) + 'px';
+            tooltip.style.top = (event.clientY - rect.top - 10) + 'px';
+        })
+        .on("mouseleave", () => { tooltip.classList.remove('show'); });
+
+    nodeEnter.append("circle")
+        .attr("r", 1e-6)
+        .attr("fill", d => {
+            if (d.data.type === "root") return "#667eea";
+            if (d.data.type === "theme") return d.data.color || "#667eea";
+            return (d.parent && d.parent.data.color) || "#667eea";
+        })
+        .attr("stroke", d => {
+            if (d.data.type === "root") return "#8b5cf6";
+            if (d.data.type === "theme") return d.data.color || "#667eea";
+            return "transparent";
+        })
+        .attr("fill-opacity", d => d.data.type === "idea" ? 0.35 : 1)
+        .attr("stroke-opacity", d => d.data.type === "idea" ? 0.6 : 1);
+
+    nodeEnter.filter(d => d.data.emoji).append("text")
+        .attr("dy", 5).attr("text-anchor", "middle").style("font-size", "14px")
+        .text(d => d.data.emoji);
+
+    nodeEnter.append("text")
+        .attr("dy", 4)
+        .attr("x", d => d.data.type === "root" ? -20 : d.data.type === "theme" ? 22 : 14)
+        .attr("text-anchor", d => d.data.type === "root" ? "end" : "start")
+        .attr("class", d => d.data.type === "root" ? "label-root" : d.data.type === "theme" ? "label-theme" : "label-idea")
+        .style("fill", d => d.data.type === "theme" ? d.data.color : null)
+        .text(d => d.data.name);
+
+    nodeEnter.filter(d => d.data.type === "theme").append("text")
+        .attr("class", "badge").attr("dy", 4).attr("text-anchor", "start");
+
+    const nodeUpdate = nodeEnter.merge(node);
+    nodeUpdate.transition().duration(duration)
+        .attr("transform", d => `translate(${d.y},${d.x})`).style("opacity", 1);
+    nodeUpdate.select("circle").attr("r", d => d.data.type === "root" ? 14 : d.data.type === "theme" ? 12 : 5);
+    nodeUpdate.select(".badge").text(d => d._children ? `+${d._children.length}` : "").attr("x", 22);
+    nodeUpdate.each(function(d) {
+        if (d.data.type !== "theme") return;
+        const labelNode = d3.select(this).select(".label-theme").node();
+        const badgeNode = d3.select(this).select(".badge");
+        if (labelNode) { const bbox = labelNode.getBBox(); badgeNode.attr("x", bbox.x + bbox.width + 8); }
+    });
+
+    const nodeExit = node.exit().transition().duration(duration)
+        .attr("transform", () => `translate(${source.y},${source.x})`).style("opacity", 0).remove();
+    nodeExit.select("circle").attr("r", 1e-6);
+    nodes.forEach(d => { d.x0 = d.x; d.y0 = d.y; });
+}
+
+function diagonal(s, d) {
+    return `M ${s.y} ${s.x} C ${(s.y + d.y) / 2} ${s.x}, ${(s.y + d.y) / 2} ${d.x}, ${d.y} ${d.x}`;
+}
+
+// ── AUDIO ──
+let audioCtx = null;
+function ensureAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+const themeNotes = [523.25, 587.33, 659.25, 783.99, 880.00, 1046.50, 1174.66, 1318.51];
+
+function playBing(themeIndex) {
+    ensureAudio();
+    const freq = themeNotes[themeIndex % themeNotes.length];
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(freq, now);
+    const osc2 = audioCtx.createOscillator(); osc2.type = 'sine'; osc2.frequency.setValueAtTime(freq * 2.5, now);
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(0.18, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
+    const gain2 = audioCtx.createGain();
+    gain2.gain.setValueAtTime(0, now); gain2.gain.linearRampToValueAtTime(0.06, now + 0.01);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+    osc.connect(gain).connect(audioCtx.destination); osc2.connect(gain2).connect(audioCtx.destination);
+    osc.start(now); osc.stop(now + 1); osc2.start(now); osc2.stop(now + 0.6);
+}
+
+function playTick() {
+    ensureAudio();
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator(); osc.type = 'sine';
+    osc.frequency.setValueAtTime(1800 + Math.random() * 400, now);
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(0.04, now + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+    osc.connect(gain).connect(audioCtx.destination); osc.start(now); osc.stop(now + 0.2);
+}
+
+// ── CONTROLS ──
+let animTimer = null, isPlaying = false;
+const btnPlay = document.getElementById('btn-play');
+
+document.getElementById('btn-expand').addEventListener('click', () => { stopAnimation(); expand(root); update(root); });
+document.getElementById('btn-collapse').addEventListener('click', () => { stopAnimation(); root.children.forEach(collapse); update(root); });
+document.getElementById('btn-reset').addEventListener('click', () => { stopAnimation(); root.children.forEach(collapse); update(root); });
+btnPlay.addEventListener('click', () => { if (isPlaying) stopAnimation(); else playAnimation(); });
+
+function stopAnimation() {
+    if (animTimer) clearTimeout(animTimer); animTimer = null; isPlaying = false;
+    btnPlay.textContent = '▶ Play Animation'; btnPlay.classList.remove('active');
+}
+
+function playAnimation() {
+    if (root._children) { root.children = root._children; root._children = null; }
+    if (root.children) root.children.forEach(collapse);
+    update(root);
+    isPlaying = true; btnPlay.textContent = '⏸ Stop'; btnPlay.classList.add('active');
+
+    const queue = [];
+    const themes = root.children || [];
+    themes.forEach((theme, ti) => {
+        const allKids = (theme._children || []).slice();
+        queue.push({ type: 'theme', fn() {
+            theme._children = null; theme.children = [allKids[0]];
+            playBing(ti); update(theme);
+        }});
+        for (let k = 1; k < allKids.length; k++) {
+            const kid = allKids[k];
+            queue.push({ type: 'leaf', fn() { theme.children.push(kid); playTick(); update(theme); }});
+        }
+    });
+
+    let step = 0;
+    function next() {
+        if (!isPlaying || step >= queue.length) { stopAnimation(); return; }
+        const item = queue[step]; item.fn(); step++;
+        animTimer = setTimeout(next, item.type === 'theme' ? 1400 : 750);
+    }
+    animTimer = setTimeout(next, 800);
+}
+</script>
+</body>
+</html>

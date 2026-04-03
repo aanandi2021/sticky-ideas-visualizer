@@ -1,0 +1,4 @@
+node_modules/
+*.ideas.json
+sticky_images/
+eng.traineddata
